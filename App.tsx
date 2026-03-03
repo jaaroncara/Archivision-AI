@@ -8,12 +8,12 @@ import { InputArea } from './components/InputArea';
 import { LivePreview } from './components/LivePreview';
 import { CreationHistory, Creation } from './components/CreationHistory';
 import { Logo } from './components/Logo';
-import { renderVision, InputImage } from './services/gemini';
+import { renderVision, refineVision, InputImage } from './services/gemini';
 import { ArrowUpTrayIcon, KeyIcon } from '@heroicons/react/24/solid';
 
 declare global {
   interface Window {
-    aistudio: {
+    aistudio?: {
       hasSelectedApiKey: () => Promise<boolean>;
       openSelectKey: () => Promise<void>;
     };
@@ -30,12 +30,19 @@ const App: React.FC = () => {
   // Check for API key on mount
   useEffect(() => {
     const checkApiKey = async () => {
+      const localEnvKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
       try {
-        const hasKey = await window.aistudio.hasSelectedApiKey();
-        setHasApiKey(hasKey);
+        if (window.aistudio?.hasSelectedApiKey) {
+          const hasKey = await window.aistudio.hasSelectedApiKey();
+          setHasApiKey(hasKey);
+          return;
+        }
+
+        // Local Vite/dev fallback: use injected env key when AI Studio host API is unavailable.
+        setHasApiKey(Boolean(localEnvKey));
       } catch (e) {
         console.error("Failed to check API key", e);
-        setHasApiKey(false);
+        setHasApiKey(Boolean(localEnvKey));
       }
     };
     checkApiKey();
@@ -43,6 +50,11 @@ const App: React.FC = () => {
 
   const handleOpenKeySelector = async () => {
     try {
+      if (!window.aistudio?.openSelectKey) {
+        const localEnvKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+        setHasApiKey(Boolean(localEnvKey));
+        return;
+      }
       await window.aistudio.openSelectKey();
       setHasApiKey(true);
     } catch (e) {
@@ -108,6 +120,16 @@ const App: React.FC = () => {
     });
   };
 
+  const dataUrlToInputImage = (dataUrl: string): InputImage | null => {
+    const matches = dataUrl.match(/^data:(.+);base64,(.+)$/);
+    if (!matches) return null;
+
+    return {
+      mimeType: matches[1],
+      data: matches[2]
+    };
+  };
+
   const handleGenerate = async (cadFile: File, moodBoardFiles: File[]) => {
     setIsGenerating(true);
     setActiveCreation(null);
@@ -157,6 +179,62 @@ const App: React.FC = () => {
   const handleReset = () => {
     setActiveCreation(null);
     setIsGenerating(false);
+  };
+
+  const handleRefine = async (refinementPrompt: string) => {
+    if (!activeCreation) return;
+
+    const trimmedPrompt = refinementPrompt.trim();
+    if (!trimmedPrompt) return;
+
+    const renderedImageInput = dataUrlToInputImage(activeCreation.renderedImage);
+    if (!renderedImageInput) {
+      alert("Failed to parse generated image for refinement.");
+      return;
+    }
+
+    const contextImages: InputImage[] = [];
+    const originalImageInput = activeCreation.originalImage
+      ? dataUrlToInputImage(activeCreation.originalImage)
+      : null;
+
+    if (originalImageInput && originalImageInput.mimeType.startsWith('image/')) {
+      contextImages.push(originalImageInput);
+    }
+
+    for (const moodImage of activeCreation.moodBoardImages || []) {
+      const moodImageInput = dataUrlToInputImage(moodImage);
+      if (moodImageInput && moodImageInput.mimeType.startsWith('image/')) {
+        contextImages.push(moodImageInput);
+      }
+    }
+
+    setIsGenerating(true);
+
+    try {
+      const refinedImageUrl = await refineVision(renderedImageInput, trimmedPrompt, contextImages);
+
+      const refinedCreation: Creation = {
+        ...activeCreation,
+        id: crypto.randomUUID(),
+        name: `${activeCreation.name} (Refined)`,
+        renderedImage: refinedImageUrl,
+        timestamp: new Date(),
+      };
+
+      setActiveCreation(refinedCreation);
+      setHistory(prev => [refinedCreation, ...prev]);
+    } catch (error: any) {
+      console.error("Failed to refine:", error);
+      if (error?.message?.includes("Requested entity was not found")) {
+        setHasApiKey(false);
+        alert("Your API key session has expired or is invalid. Please select your API key again.");
+      } else {
+        alert("Something went wrong while refining your mockup. Please try again.");
+      }
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleSelectCreation = (creation: Creation) => {
@@ -313,13 +391,14 @@ const App: React.FC = () => {
         isLoading={isGenerating}
         isFocused={isFocused}
         onReset={handleReset}
+        onRefine={handleRefine}
       />
 
-      {/* Subtle Import Button (Bottom Right) */}
-      <div className="fixed bottom-6 right-6 z-50">
+        {/* Subtle Import Button (Bottom Left) */}
+        <div className="fixed bottom-6 left-6 z-50 group">
         <button 
             onClick={handleImportClick}
-            className="flex items-center space-x-3 p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-white/40 hover:text-white transition-all shadow-sm hover:shadow-md"
+          className={`flex items-center space-x-3 p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-white/40 hover:text-white transition-all shadow-sm hover:shadow-md ${isFocused ? 'opacity-0 pointer-events-none -translate-x-1 group-hover:opacity-100 group-hover:pointer-events-auto group-hover:translate-x-0' : 'opacity-100 pointer-events-auto'}`}
             title="Import Artifact"
         >
             <span className="text-[10px] font-bold uppercase tracking-[0.2em] hidden sm:inline pl-2">Import Archive</span>

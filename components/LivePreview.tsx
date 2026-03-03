@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 import React, { useEffect, useState, useRef } from 'react';
-import { ArrowDownTrayIcon, PlusIcon, ViewColumnsIcon, DocumentIcon, CodeBracketIcon, XMarkIcon, PhotoIcon } from '@heroicons/react/24/outline';
+import { ArrowDownTrayIcon, PlusIcon, ViewColumnsIcon, DocumentIcon, CodeBracketIcon, XMarkIcon, PhotoIcon, SparklesIcon } from '@heroicons/react/24/outline';
 import { Creation } from './CreationHistory';
 import { Logo } from './Logo';
 
@@ -12,6 +12,7 @@ interface LivePreviewProps {
   isLoading: boolean;
   isFocused: boolean;
   onReset: () => void;
+  onRefine: (prompt: string) => void;
 }
 
 // Add type definition for the global pdfjsLib
@@ -110,9 +111,11 @@ const PdfRenderer = ({ dataUrl }: { dataUrl: string }) => {
   );
 };
 
-export const LivePreview: React.FC<LivePreviewProps> = ({ creation, isLoading, isFocused, onReset }) => {
+export const LivePreview: React.FC<LivePreviewProps> = ({ creation, isLoading, isFocused, onReset, onRefine }) => {
     const [loadingStep, setLoadingStep] = useState(0);
     const [showSplitView, setShowSplitView] = useState(false);
+  const [refinePrompt, setRefinePrompt] = useState('');
+  const refineTextareaRef = useRef<HTMLTextAreaElement>(null);
 
     // Handle loading animation steps
     useEffect(() => {
@@ -136,6 +139,25 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ creation, isLoading, i
         }
     }, [creation]);
 
+    useEffect(() => {
+      if (!creation?.renderedImage || isLoading) return;
+
+      const frame = requestAnimationFrame(() => {
+        const textarea = refineTextareaRef.current;
+        if (!textarea) return;
+
+        textarea.focus();
+        if (textarea.value.trim().length > 0) {
+          textarea.select();
+        } else {
+          const end = textarea.value.length;
+          textarea.setSelectionRange(end, end);
+        }
+      });
+
+      return () => cancelAnimationFrame(frame);
+    }, [creation?.renderedImage, isLoading]);
+
     const handleDownloadImage = () => {
         if (!creation?.renderedImage) return;
         const link = document.createElement('a');
@@ -158,6 +180,21 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ creation, isLoading, i
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+    };
+
+      const handleRefineSubmit = () => {
+        const trimmedPrompt = refinePrompt.trim();
+        if (!trimmedPrompt || isLoading) return;
+        onRefine(trimmedPrompt);
+        setRefinePrompt('');
+      };
+
+    const handleRefineKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key !== 'Enter') return;
+        if (e.shiftKey) return;
+
+        e.preventDefault();
+        handleRefineSubmit();
     };
 
   return (
@@ -302,6 +339,38 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ creation, isLoading, i
                     alt="Archivision AI Rendering"
                     className="max-w-full max-h-full object-contain shadow-[0_0_100px_rgba(255,255,255,0.05)] rounded-xl border border-white/10"
                 />
+
+              <div className="absolute bottom-6 left-6 right-6 md:left-auto md:w-[460px] bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <SparklesIcon className="w-3.5 h-3.5 text-white/70" />
+                  <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-white/70">Refine Mockup</span>
+                </div>
+                <div className="flex items-end gap-2">
+                  <textarea
+                    ref={refineTextareaRef}
+                    value={refinePrompt}
+                    onChange={(e) => setRefinePrompt(e.target.value)}
+                    onKeyDown={handleRefineKeyDown}
+                    placeholder="e.g. warm lighting, less saturation, lighter oak flooring"
+                    rows={2}
+                    className="w-full resize-none rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-white/30"
+                    disabled={isLoading}
+                  />
+                  <button
+                    onClick={handleRefineSubmit}
+                    disabled={isLoading || !refinePrompt.trim()}
+                    className={`shrink-0 px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-[0.16em] border transition-colors ${isLoading || !refinePrompt.trim() ? 'bg-white/5 text-white/20 border-white/10 cursor-not-allowed' : 'bg-white text-black border-white hover:bg-white/90'}`}
+                  >
+                    Refine
+                  </button>
+                </div>
+                <div className="mt-2 flex items-center justify-end gap-2 text-[9px] text-white/35 font-mono uppercase tracking-[0.15em]">
+                  <span className="px-2 py-1 rounded-md border border-white/10 bg-white/5 text-white/45">Enter</span>
+                  <span>Refine</span>
+                  <span className="px-2 py-1 rounded-md border border-white/10 bg-white/5 text-white/45">Shift + Enter</span>
+                  <span>New Line</span>
+                </div>
+              </div>
             </div>
           </>
         ) : null}

@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  archivision-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Pass the environment variable to the docker build process
+        - GEMINI_API_KEY=${GEMINI_API_KEY}
+    ports:
+      # Map localhost:8080 to Nginx serving on port 80
+      - "8080:80"
+    env_file:
+      - .env
+    restart: unless-stopped

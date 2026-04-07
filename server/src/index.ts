@@ -1,13 +1,15 @@
+import path from "path";
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import { GoogleGenAI, GenerateContentResponse } from '@google/genai';
 
-dotenv.config();
+dotenv.config({ path: __dirname + '/../../.env' }); // try root .env if running from src or dist
+dotenv.config(); // fallback
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5555;
 
 // Middleware
 app.use(cors());
@@ -130,6 +132,16 @@ app.post('/api/render', async (req, res) => {
 app.post('/api/refine', async (req, res) => {
   // Add refinement logic here if needed
   return res.status(501).json({ error: 'Not implemented.' });
+});
+
+// ----------------------------------------------------------------------
+// Serve Static Frontend (Single Port Deployment)
+// ----------------------------------------------------------------------
+const frontendDistPath = path.join(__dirname, '../../dist');
+app.use(express.static(frontendDistPath));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(frontendDistPath, 'index.html'));
 });
 
 // Start Server

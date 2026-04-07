@@ -30,7 +30,6 @@ const App: React.FC = () => {
   // Check for API key on mount
   useEffect(() => {
     const checkApiKey = async () => {
-      const localEnvKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
       try {
         if (window.aistudio?.hasSelectedApiKey) {
           const hasKey = await window.aistudio.hasSelectedApiKey();
@@ -38,11 +37,11 @@ const App: React.FC = () => {
           return;
         }
 
-        // Local Vite/dev fallback: use injected env key when AI Studio host API is unavailable.
-        setHasApiKey(Boolean(localEnvKey));
+        // We now rely on the secure Express backend, assume the key is present there
+        setHasApiKey(true);
       } catch (e) {
         console.error("Failed to check API key", e);
-        setHasApiKey(Boolean(localEnvKey));
+        setHasApiKey(true);
       }
     };
     checkApiKey();
@@ -51,8 +50,8 @@ const App: React.FC = () => {
   const handleOpenKeySelector = async () => {
     try {
       if (!window.aistudio?.openSelectKey) {
-        const localEnvKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
-        setHasApiKey(Boolean(localEnvKey));
+        // Relying on the backend.
+        setHasApiKey(true);
         return;
       }
       await window.aistudio.openSelectKey();

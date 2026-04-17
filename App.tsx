@@ -71,8 +71,8 @@ const App: React.FC = () => {
         try {
           const parsed = JSON.parse(saved);
           loadedHistory = parsed.map((item: any) => ({
-              ...item,
-              timestamp: new Date(item.timestamp)
+            ...item,
+            timestamp: new Date(item.timestamp)
           }));
         } catch (e) {
           console.error("Failed to load history", e);
@@ -93,11 +93,11 @@ const App: React.FC = () => {
   // Save history when it changes
   useEffect(() => {
     if (history.length > 0) {
-        try {
-            localStorage.setItem('gemini_app_history', JSON.stringify(history));
-        } catch (e) {
-            console.warn("Local storage full or error saving history", e);
-        }
+      try {
+        localStorage.setItem('gemini_app_history', JSON.stringify(history));
+      } catch (e) {
+        console.warn("Local storage full or error saving history", e);
+      }
     }
   }, [history]);
 
@@ -148,7 +148,7 @@ const App: React.FC = () => {
       );
 
       const renderedImageUrl = await renderVision(cadInput, moodBoardInputs);
-      
+
       if (renderedImageUrl) {
         const newCreation: Creation = {
           id: crypto.randomUUID(),
@@ -167,6 +167,8 @@ const App: React.FC = () => {
       if (error?.message?.includes("Requested entity was not found")) {
         setHasApiKey(false);
         alert("Your API key session has expired or is invalid. Please select your API key again.");
+      } else if (error?.message?.includes("Could not reach")) {
+        alert(error.message);
       } else {
         alert("Something went wrong while rendering your vision. Please try again.");
       }
@@ -228,6 +230,8 @@ const App: React.FC = () => {
       if (error?.message?.includes("Requested entity was not found")) {
         setHasApiKey(false);
         alert("Your API key session has expired or is invalid. Please select your API key again.");
+      } else if (error?.message?.includes("Could not reach")) {
+        alert(error.message);
       } else {
         alert("Something went wrong while refining your mockup. Please try again.");
       }
@@ -257,35 +261,35 @@ const App: React.FC = () => {
 
     const reader = new FileReader();
     reader.onload = (event) => {
-        try {
-            const json = event.target?.result as string;
-            const parsed = JSON.parse(json);
-            
-            // Basic validation
-            if (parsed.renderedImage && parsed.name) {
-                const importedCreation: Creation = {
-                    ...parsed,
-                    timestamp: new Date(parsed.timestamp || Date.now()),
-                    id: parsed.id || crypto.randomUUID()
-                };
-                
-                // Add to history if not already there (by ID check)
-                setHistory(prev => {
-                    const exists = prev.some(c => c.id === importedCreation.id);
-                    return exists ? prev : [importedCreation, ...prev];
-                });
+      try {
+        const json = event.target?.result as string;
+        const parsed = JSON.parse(json);
 
-                // Set as active immediately
-                setActiveCreation(importedCreation);
-            } else {
-                alert("Invalid creation file format.");
-            }
-        } catch (err) {
-            console.error("Import error", err);
-            alert("Failed to import creation.");
+        // Basic validation
+        if (parsed.renderedImage && parsed.name) {
+          const importedCreation: Creation = {
+            ...parsed,
+            timestamp: new Date(parsed.timestamp || Date.now()),
+            id: parsed.id || crypto.randomUUID()
+          };
+
+          // Add to history if not already there (by ID check)
+          setHistory(prev => {
+            const exists = prev.some(c => c.id === importedCreation.id);
+            return exists ? prev : [importedCreation, ...prev];
+          });
+
+          // Set as active immediately
+          setActiveCreation(importedCreation);
+        } else {
+          alert("Invalid creation file format.");
         }
-        // Reset input
-        if (importInputRef.current) importInputRef.current.value = '';
+      } catch (err) {
+        console.error("Import error", err);
+        alert("Failed to import creation.");
+      }
+      // Reset input
+      if (importInputRef.current) importInputRef.current.value = '';
     };
     reader.readAsText(file);
   };
@@ -312,9 +316,9 @@ const App: React.FC = () => {
             >
               Select API Key
             </button>
-            <a 
-              href="https://ai.google.dev/gemini-api/docs/billing" 
-              target="_blank" 
+            <a
+              href="https://ai.google.dev/gemini-api/docs/billing"
+              target="_blank"
               rel="noopener noreferrer"
               className="block text-[10px] text-white/20 hover:text-white/40 uppercase tracking-widest transition-colors"
             >
@@ -336,51 +340,51 @@ const App: React.FC = () => {
 
   return (
     <div className="h-[100dvh] bg-[#050505] bg-tech-grid text-white selection:bg-white/10 overflow-y-auto overflow-x-hidden relative flex flex-col">
-      
+
       {/* Centered Content Container */}
-      <div 
+      <div
         className={`
           min-h-full flex flex-col w-full max-w-7xl mx-auto px-4 sm:px-6 relative z-10 
           transition-all duration-700 cubic-bezier(0.4, 0, 0.2, 1)
-          ${isFocused 
-            ? 'opacity-0 scale-95 blur-sm pointer-events-none h-[100dvh] overflow-hidden' 
+          ${isFocused
+            ? 'opacity-0 scale-95 blur-sm pointer-events-none h-[100dvh] overflow-hidden'
             : 'opacity-100 scale-100 blur-0'
           }
         `}
       >
         {/* Main Vertical Centering Wrapper */}
         <div className="flex-1 flex flex-col justify-center items-center w-full py-12 md:py-20">
-          
+
           {/* 1. Hero Section */}
           <div className="w-full mb-8 md:mb-16">
-              <Hero />
+            <Hero />
           </div>
 
           {/* 2. Input Section */}
           <div className="w-full flex justify-center mb-8">
-              <InputArea onGenerate={handleGenerate} isGenerating={isGenerating} disabled={isFocused} />
+            <InputArea onGenerate={handleGenerate} isGenerating={isGenerating} disabled={isFocused} />
           </div>
 
         </div>
-        
+
         {/* 3. History Section & Footer - Stays at bottom */}
         <div className="flex-shrink-0 pb-6 w-full mt-auto flex flex-col items-center gap-6">
-            <div className="w-full px-2 md:px-0">
-                <CreationHistory 
-                  history={history} 
-                  onSelect={handleSelectCreation} 
-                  onDelete={handleDeleteCreation}
-                />
-            </div>
-            
-            <a 
-              href="https://x.com/ammaar" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-white/20 hover:text-white/40 text-[10px] font-mono uppercase tracking-widest transition-colors pb-2"
-            >
-              Created By: Joe Caravaglia
-            </a>
+          <div className="w-full px-2 md:px-0">
+            <CreationHistory
+              history={history}
+              onSelect={handleSelectCreation}
+              onDelete={handleDeleteCreation}
+            />
+          </div>
+
+          <a
+            href="https://x.com/ammaar"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-white/20 hover:text-white/40 text-[10px] font-mono uppercase tracking-widest transition-colors pb-2"
+          >
+            Created By: Joe Caravaglia
+          </a>
         </div>
       </div>
 
@@ -393,22 +397,22 @@ const App: React.FC = () => {
         onRefine={handleRefine}
       />
 
-        {/* Subtle Import Button (Bottom Left) */}
-        <div className="fixed bottom-6 left-6 z-50 group">
-        <button 
-            onClick={handleImportClick}
+      {/* Subtle Import Button (Bottom Left) */}
+      <div className="fixed bottom-6 left-6 z-50 group">
+        <button
+          onClick={handleImportClick}
           className={`flex items-center space-x-3 p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-white/40 hover:text-white transition-all shadow-sm hover:shadow-md ${isFocused ? 'opacity-0 pointer-events-none -translate-x-1 group-hover:opacity-100 group-hover:pointer-events-auto group-hover:translate-x-0' : 'opacity-100 pointer-events-auto'}`}
-            title="Import Artifact"
+          title="Import Artifact"
         >
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] hidden sm:inline pl-2">Import Archive</span>
-            <ArrowUpTrayIcon className="w-4 h-4" />
+          <span className="text-[10px] font-bold uppercase tracking-[0.2em] hidden sm:inline pl-2">Import Archive</span>
+          <ArrowUpTrayIcon className="w-4 h-4" />
         </button>
-        <input 
-            type="file" 
-            ref={importInputRef} 
-            onChange={handleImportFile} 
-            accept=".json" 
-            className="hidden" 
+        <input
+          type="file"
+          ref={importInputRef}
+          onChange={handleImportFile}
+          accept=".json"
+          className="hidden"
         />
       </div>
     </div>

@@ -15,6 +15,12 @@ App preview link: https://ai.studio/apps/cd9a5328-2cab-4341-b344-34d93c2e250c
 3. Run the app:
    `npm run dev`
 
+`npm run dev` starts both the Vite frontend and the Express API server used by `/api/render` and `/api/refine`.
+
+If you need to run them separately, use:
+- `npm run dev:client`
+- `npm run dev:server`
+
 Local env files such as `.env` and `.env.local` are ignored by Git. Commit only [.env.example](.env.example).
 
 ## API key behavior (AI Studio vs local)

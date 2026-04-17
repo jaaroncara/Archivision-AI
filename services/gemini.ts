@@ -17,18 +17,25 @@ export async function renderVision(
   prompt?: string
 ): Promise<string> {
   const url = BACKEND_URL ? `${BACKEND_URL}/api/render` : `/api/render`;
-  
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      cadImage,
-      moodBoardImages,
-      prompt
-    })
-  });
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        cadImage,
+        moodBoardImages,
+        prompt
+      })
+    });
+  } catch (error) {
+    const backendTarget = BACKEND_URL || 'the local API server on http://localhost:5555';
+    const reason = error instanceof Error ? error.message : 'Unknown network error';
+    throw new Error(`Could not reach ${backendTarget}. Make sure the backend server is running. ${reason}`);
+  }
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -48,19 +55,26 @@ export async function refineVision(
   contextImages: InputImage[] = []
 ): Promise<string> {
   const url = BACKEND_URL ? `${BACKEND_URL}/api/refine` : `/api/refine`;
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ renderedImage, refinementPrompt, contextImages })
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ renderedImage, refinementPrompt, contextImages })
+    });
+  } catch (error) {
+    const backendTarget = BACKEND_URL || 'the local API server on http://localhost:5555';
+    const reason = error instanceof Error ? error.message : 'Unknown network error';
+    throw new Error(`Could not reach ${backendTarget}. Make sure the backend server is running. ${reason}`);
+  }
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
     throw new Error(err.error || "Failed to refine vision");
   }
-  
+
   const data = await response.json();
   return data.result;
 }

@@ -71,7 +71,7 @@ app.post('/api/render', async (req, res) => {
     }
 
     const parts: any[] = [];
-    
+
     // Add the primary CAD drawing
     parts.push({
       inlineData: cadImage
@@ -112,8 +112,8 @@ app.post('/api/render', async (req, res) => {
     let base64Output = null;
     for (const part of response.candidates?.[0]?.content?.parts || []) {
       if (part.inlineData) {
-         base64Output = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-         break;
+        base64Output = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+        break;
       }
     }
 
@@ -138,7 +138,7 @@ app.post('/api/refine', async (req, res) => {
     }
 
     const parts: any[] = [];
-    
+
     // Add the image to refine
     parts.push({
       inlineData: renderedImage
@@ -179,8 +179,8 @@ app.post('/api/refine', async (req, res) => {
     let base64Output = null;
     for (const part of response.candidates?.[0]?.content?.parts || []) {
       if (part.inlineData) {
-         base64Output = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-         break;
+        base64Output = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+        break;
       }
     }
 

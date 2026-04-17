@@ -11,9 +11,11 @@ App preview link: https://ai.studio/apps/cd9a5328-2cab-4341-b344-34d93c2e250c
 
 1. Install dependencies:
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+2. Copy [.env.example](.env.example) to `.env`, then set `GEMINI_API_KEY` to your Gemini API key
 3. Run the app:
    `npm run dev`
+
+Local env files such as `.env` and `.env.local` are ignored by Git. Commit only [.env.example](.env.example).
 
 ## API key behavior (AI Studio vs local)
 
